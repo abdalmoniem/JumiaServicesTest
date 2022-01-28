@@ -1,6 +1,7 @@
 package com.hifnawy.subtitle.jumiastaskphonenumberviewer.viewHolders;
 
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -16,6 +17,7 @@ public class ItemHolder extends RecyclerView.ViewHolder {
   public final TextView customerID;
   public final TextView customerName;
   public final TextView customerPhone;
+  public final ImageView customerIcon;
 
   public ItemHolder(@NonNull View itemView) {
     super(itemView);
@@ -24,5 +26,6 @@ public class ItemHolder extends RecyclerView.ViewHolder {
     customerID = itemView.findViewById(R.id.customerID);
     customerName = itemView.findViewById(R.id.customerName);
     customerPhone = itemView.findViewById(R.id.customerPhone);
+    customerIcon = itemView.findViewById(R.id.customerIcon);
   }
 }

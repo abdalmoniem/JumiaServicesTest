@@ -1,6 +1,8 @@
 package com.hifnawy.subtitle.jumiastaskphonenumberviewer.adapters;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
@@ -11,6 +13,7 @@ import com.hifnawy.subtitle.jumiastaskphonenumberviewer.model.Customer;
 import com.hifnawy.subtitle.jumiastaskphonenumberviewer.viewHolders.ItemHolder;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -51,6 +54,11 @@ public class CustomerItemAdapter extends RecyclerView.Adapter<ItemHolder> {
     holder.customerName.setText(String.valueOf(customer.getName()));
     holder.customerPhone.setText(String.valueOf(customer.getPhone()));
 
+    holder.customerIcon.setColorFilter(
+        Color.argb(
+            80, new Random().nextInt(255), new Random().nextInt(255), new Random().nextInt(255)),
+        PorterDuff.Mode.SRC_ATOP);
+
     Animation animation;
     if (position < lastPosition) {
       animation = AnimationUtils.loadAnimation(mContext, R.anim.single_item_animation_rise_up);
@@ -82,11 +90,13 @@ public class CustomerItemAdapter extends RecyclerView.Adapter<ItemHolder> {
   public void setDataSet(ArrayList<Customer> objects) {
     this.mItems.clear();
 
-    notifyDataSetChanged();
-
     this.mItems = objects;
 
     notifyDataSetChanged();
+  }
+
+  public ArrayList<Customer> getDataSet() {
+    return this.mItems;
   }
 
   public void refreshAndAnimate() {

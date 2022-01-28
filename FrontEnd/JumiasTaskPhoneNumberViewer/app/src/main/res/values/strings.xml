@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Jumia\'s Task Phone Number Viewer</string>
+    <string name="allNumbersURL">/getNumbers</string>
+    <string name="validURL">/getNumbers/byState/valid</string>
+    <string name="invalidURL">/getNumbers/byState/invalid</string>
+    <string name="cameroonURL">/getNumbers/byCountry/cameroon</string>
+    <string name="ethiopiaURL">/getNumbers/byCountry/ethiopia</string>
+    <string name="moroccoURL">/getNumbers/byCountry/morocco</string>
+    <string name="mozambiqueURL">/getNumbers/byCountry/mozambique</string>
+    <string name="ugandaURL">/getNumbers/byCountry/uganda</string>
 </resources>
