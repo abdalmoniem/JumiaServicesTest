@@ -1,4 +1,4 @@
 <resources>
     <!-- Default screen margins, per the Android Design guidelines. -->
-    <integer name="list_animation_duration">300</integer>
+    <integer name="list_animation_duration">150</integer>
 </resources>

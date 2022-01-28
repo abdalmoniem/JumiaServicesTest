@@ -24,7 +24,6 @@ public class CustomerItemAdapter extends RecyclerView.Adapter<ItemHolder> {
   private LayoutInflater mInflater;
   private ArrayList<Customer> mItems;
   private RecyclerView recyclerView;
-  private int lastPosition = -1;
 
   public CustomerItemAdapter(Context context) {
     if (context != null) {
@@ -59,15 +58,10 @@ public class CustomerItemAdapter extends RecyclerView.Adapter<ItemHolder> {
             80, new Random().nextInt(255), new Random().nextInt(255), new Random().nextInt(255)),
         PorterDuff.Mode.SRC_ATOP);
 
-    Animation animation;
-    if (position < lastPosition) {
-      animation = AnimationUtils.loadAnimation(mContext, R.anim.single_item_animation_rise_up);
-    } else {
-      animation = AnimationUtils.loadAnimation(mContext, R.anim.single_item_animation_fall_down);
-    }
+    Animation animation =
+        AnimationUtils.loadAnimation(mContext, R.anim.single_item_animation_rise_up);
 
     holder.itemView.startAnimation(animation);
-    lastPosition = holder.getAdapterPosition();
   }
 
   @Override
@@ -75,14 +69,14 @@ public class CustomerItemAdapter extends RecyclerView.Adapter<ItemHolder> {
     return mItems.size();
   }
 
-  public void addCustomer(Customer customer) {
+  public void add(Customer customer) {
     this.mItems.add(customer);
 
     notifyDataSetChanged();
   }
 
-  public void clear() {
-    this.mItems.clear();
+  public void addAll(ArrayList<Customer> customers) {
+    this.mItems.addAll(customers);
 
     notifyDataSetChanged();
   }
@@ -95,6 +89,12 @@ public class CustomerItemAdapter extends RecyclerView.Adapter<ItemHolder> {
     notifyDataSetChanged();
   }
 
+  public void clear() {
+    this.mItems.clear();
+
+    notifyDataSetChanged();
+  }
+
   public ArrayList<Customer> getDataSet() {
     return this.mItems;
   }
@@ -103,5 +103,6 @@ public class CustomerItemAdapter extends RecyclerView.Adapter<ItemHolder> {
     notifyDataSetChanged();
     this.recyclerView.setLayoutAnimation(
         AnimationUtils.loadLayoutAnimation(mContext, R.anim.layout_animation_fall_down));
+    this.recyclerView.animate();
   }
 }

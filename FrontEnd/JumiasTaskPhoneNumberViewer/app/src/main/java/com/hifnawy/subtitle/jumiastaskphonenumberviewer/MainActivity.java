@@ -7,8 +7,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.Window;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.Toast;
 
@@ -16,10 +19,13 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.hifnawy.subtitle.jumiastaskphonenumberviewer.adapters.CustomerItemAdapter;
+import com.hifnawy.subtitle.jumiastaskphonenumberviewer.interfaces.DataRequestCallback;
 import com.hifnawy.subtitle.jumiastaskphonenumberviewer.model.Response;
 
+import java.util.Locale;
 import java.util.Objects;
 
 import androidx.annotation.NonNull;
@@ -33,12 +39,23 @@ public class MainActivity extends AppCompatActivity {
   private final String serverIP = "192.168.1.120";
   private final String serverPort = "8080";
   private final String baseURL = String.format("http://%s:%s", serverIP, serverPort);
+  private final Gson gson = new Gson();
+
+  private SwipeRefreshLayout swipeRefreshLayout;
+  private RecyclerView customersRecyclerView;
+  private CustomerItemAdapter customerItemAdapter;
+  private FloatingActionButton scrollUpFAB;
+  private ImageView errorIconImageView;
+  private ProgressBar progressBar;
 
   private RequestQueue requestQueue;
-  private SwipeRefreshLayout swipeRefreshLayout;
-  private CustomerItemAdapter customerItemAdapter;
 
   private Filter selectedFilter = Filter.ALL;
+
+  private boolean mLoading = false;
+
+  private int pagesLeft = Integer.MAX_VALUE;
+  private int pageIndex = 1;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +64,43 @@ public class MainActivity extends AppCompatActivity {
 
     requestQueue = Volley.newRequestQueue(getApplicationContext());
 
-    RecyclerView customersRecyclerView = findViewById(R.id.customersRecyclerView);
+    initializeLayout();
+
+    // requestAllCustomers();
+
+    requestMoreCustomers(
+        pageIndex,
+        new DataRequestCallback() {
+          @Override
+          public void dataPreLoaded() {}
+
+          @Override
+          public void dataLoaded() {
+            customersRecyclerView.setVisibility(View.VISIBLE);
+            errorIconImageView.setVisibility(View.GONE);
+
+            customerItemAdapter.refreshAndAnimate();
+            swipeRefreshLayout.setRefreshing(false);
+            progressBar.setVisibility(View.GONE);
+            pageIndex++;
+          }
+
+          @Override
+          public void dataLoadError() {
+            errorIconImageView.setVisibility(View.VISIBLE);
+            customersRecyclerView.setVisibility(View.GONE);
+            swipeRefreshLayout.setRefreshing(false);
+            progressBar.setVisibility(View.GONE);
+          }
+        });
+  }
+
+  private void initializeLayout() {
+    customersRecyclerView = findViewById(R.id.customersRecyclerView);
+
+    errorIconImageView = findViewById(R.id.errorIconImageView);
+
+    progressBar = findViewById(R.id.loadingProgressBar);
 
     swipeRefreshLayout = findViewById(R.id.swipeRefreshSwipeLayout);
 
@@ -56,10 +109,95 @@ public class MainActivity extends AppCompatActivity {
     customersRecyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
     customersRecyclerView.setAdapter(customerItemAdapter);
 
-    requestAllCustomers();
+    scrollUpFAB = findViewById(R.id.scrollUpFAB);
+
+    scrollUpFAB.setOnClickListener(v -> customersRecyclerView.smoothScrollToPosition(0));
 
     swipeRefreshLayout.setColorSchemeColors(Color.RED, Color.GREEN);
-    swipeRefreshLayout.setOnRefreshListener(() -> requestAllCustomers());
+    swipeRefreshLayout.setOnRefreshListener(
+        () ->
+            requestMoreCustomers(
+                1,
+                selectedFilter,
+                new DataRequestCallback() {
+                  @Override
+                  public void dataPreLoaded() {
+                    customerItemAdapter.clear();
+                    pageIndex = 1;
+                  }
+
+                  @Override
+                  public void dataLoaded() {
+                    customerItemAdapter.refreshAndAnimate();
+                    swipeRefreshLayout.setRefreshing(false);
+                    progressBar.setVisibility(View.GONE);
+                  }
+
+                  @Override
+                  public void dataLoadError() {
+                    errorIconImageView.setVisibility(View.VISIBLE);
+                    customersRecyclerView.setVisibility(View.GONE);
+                    swipeRefreshLayout.setRefreshing(false);
+                    progressBar.setVisibility(View.GONE);
+                  }
+                }));
+
+    LinearLayoutManager mLinearLayoutManager = new LinearLayoutManager(this);
+    customersRecyclerView.setLayoutManager(mLinearLayoutManager);
+
+    customersRecyclerView.addOnScrollListener(
+        new RecyclerView.OnScrollListener() {
+
+          @Override
+          public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+
+            int totalItems = mLinearLayoutManager.getItemCount();
+            int firstVisibleItem = mLinearLayoutManager.findFirstVisibleItemPosition();
+            int lastVisibleItem = mLinearLayoutManager.findLastVisibleItemPosition();
+
+            if (lastVisibleItem >= 10) {
+              scrollUpFAB.setVisibility(View.VISIBLE);
+            } else if (firstVisibleItem <= 3) {
+              scrollUpFAB.setVisibility(View.GONE);
+            } else {
+              // do nothing
+            }
+
+            if (pagesLeft > 0) {
+              if (!mLoading && (lastVisibleItem >= totalItems - 5)) {
+                mLoading = true;
+                // Scrolled to bottom. Do something here.
+                requestMoreCustomers(
+                    pageIndex,
+                    selectedFilter,
+                    new DataRequestCallback() {
+                      @Override
+                      public void dataPreLoaded() {}
+
+                      @Override
+                      public void dataLoaded() {
+                        customersRecyclerView.setVisibility(View.VISIBLE);
+                        errorIconImageView.setVisibility(View.GONE);
+                        mLoading = false;
+                        pageIndex++;
+                      }
+
+                      @Override
+                      public void dataLoadError() {
+                        errorIconImageView.setVisibility(View.VISIBLE);
+                        customersRecyclerView.setVisibility(View.GONE);
+                        swipeRefreshLayout.setRefreshing(false);
+                      }
+                    });
+              } else {
+                // do nothing
+              }
+            } else {
+              // do nothing
+            }
+          }
+        });
   }
 
   @Override
@@ -126,35 +264,234 @@ public class MainActivity extends AppCompatActivity {
       filterButton.setOnClickListener(
           view -> {
             if (allRadioButton.isChecked()) {
-              requestAllCustomers();
+              requestMoreCustomers(
+                  1,
+                  new DataRequestCallback() {
+                    @Override
+                    public void dataPreLoaded() {
+                      customerItemAdapter.clear();
+                      pageIndex = 1;
+                    }
+
+                    @Override
+                    public void dataLoaded() {
+                      customersRecyclerView.setVisibility(View.VISIBLE);
+                      errorIconImageView.setVisibility(View.GONE);
+                      customerItemAdapter.refreshAndAnimate();
+                      swipeRefreshLayout.setRefreshing(false);
+                      pageIndex++;
+                    }
+
+                    @Override
+                    public void dataLoadError() {
+                      errorIconImageView.setVisibility(View.VISIBLE);
+                      customersRecyclerView.setVisibility(View.GONE);
+                      swipeRefreshLayout.setRefreshing(false);
+                    }
+                  });
 
               selectedFilter = Filter.ALL;
             } else if (validStateRadioButton.isChecked()) {
-              requestCustomersByState(Filter.VALID);
+              requestMoreCustomers(
+                  1,
+                  Filter.VALID,
+                  new DataRequestCallback() {
+                    @Override
+                    public void dataPreLoaded() {
+                      customerItemAdapter.clear();
+                      pageIndex = 1;
+                    }
+
+                    @Override
+                    public void dataLoaded() {
+                      customersRecyclerView.setVisibility(View.VISIBLE);
+                      errorIconImageView.setVisibility(View.GONE);
+                      customerItemAdapter.refreshAndAnimate();
+                      swipeRefreshLayout.setRefreshing(false);
+                      pageIndex++;
+                    }
+
+                    @Override
+                    public void dataLoadError() {
+                      errorIconImageView.setVisibility(View.VISIBLE);
+                      customersRecyclerView.setVisibility(View.GONE);
+                      swipeRefreshLayout.setRefreshing(false);
+                    }
+                  });
 
               selectedFilter = Filter.VALID;
             } else if (invalidStateRadioButton.isChecked()) {
-              requestCustomersByState(Filter.INVALID);
+              requestMoreCustomers(
+                  1,
+                  Filter.INVALID,
+                  new DataRequestCallback() {
+                    @Override
+                    public void dataPreLoaded() {
+                      customerItemAdapter.clear();
+                      pageIndex = 1;
+                    }
+
+                    @Override
+                    public void dataLoaded() {
+                      customersRecyclerView.setVisibility(View.VISIBLE);
+                      errorIconImageView.setVisibility(View.GONE);
+                      customerItemAdapter.refreshAndAnimate();
+                      swipeRefreshLayout.setRefreshing(false);
+                      pageIndex++;
+                    }
+
+                    @Override
+                    public void dataLoadError() {
+                      errorIconImageView.setVisibility(View.VISIBLE);
+                      customersRecyclerView.setVisibility(View.GONE);
+                      swipeRefreshLayout.setRefreshing(false);
+                    }
+                  });
 
               selectedFilter = Filter.INVALID;
             } else if (cameroonCountryRadioButton.isChecked()) {
-              requestCustomersByCountry(Filter.CAMEROON);
+              requestMoreCustomers(
+                  1,
+                  Filter.CAMEROON,
+                  new DataRequestCallback() {
+                    @Override
+                    public void dataPreLoaded() {
+                      customerItemAdapter.clear();
+                      pageIndex = 1;
+                    }
+
+                    @Override
+                    public void dataLoaded() {
+                      customersRecyclerView.setVisibility(View.VISIBLE);
+                      errorIconImageView.setVisibility(View.GONE);
+                      customerItemAdapter.refreshAndAnimate();
+                      swipeRefreshLayout.setRefreshing(false);
+                      pageIndex++;
+                    }
+
+                    @Override
+                    public void dataLoadError() {
+                      errorIconImageView.setVisibility(View.VISIBLE);
+                      customersRecyclerView.setVisibility(View.GONE);
+                      swipeRefreshLayout.setRefreshing(false);
+                    }
+                  });
 
               selectedFilter = Filter.CAMEROON;
             } else if (ethiopiaCountryRadioButton.isChecked()) {
-              requestCustomersByCountry(Filter.ETHIOPIA);
+              requestMoreCustomers(
+                  1,
+                  Filter.ETHIOPIA,
+                  new DataRequestCallback() {
+                    @Override
+                    public void dataPreLoaded() {
+                      customerItemAdapter.clear();
+                      pageIndex = 1;
+                    }
+
+                    @Override
+                    public void dataLoaded() {
+                      customersRecyclerView.setVisibility(View.VISIBLE);
+                      errorIconImageView.setVisibility(View.GONE);
+                      customerItemAdapter.refreshAndAnimate();
+                      swipeRefreshLayout.setRefreshing(false);
+                      pageIndex++;
+                    }
+
+                    @Override
+                    public void dataLoadError() {
+                      errorIconImageView.setVisibility(View.VISIBLE);
+                      customersRecyclerView.setVisibility(View.GONE);
+                      swipeRefreshLayout.setRefreshing(false);
+                    }
+                  });
 
               selectedFilter = Filter.ETHIOPIA;
             } else if (moroccoCountryRadioButton.isChecked()) {
-              requestCustomersByCountry(Filter.MOROCCO);
+              requestMoreCustomers(
+                  1,
+                  Filter.MOROCCO,
+                  new DataRequestCallback() {
+                    @Override
+                    public void dataPreLoaded() {
+                      customerItemAdapter.clear();
+                      pageIndex = 1;
+                    }
+
+                    @Override
+                    public void dataLoaded() {
+                      customersRecyclerView.setVisibility(View.VISIBLE);
+                      errorIconImageView.setVisibility(View.GONE);
+                      customerItemAdapter.refreshAndAnimate();
+                      swipeRefreshLayout.setRefreshing(false);
+                      pageIndex++;
+                    }
+
+                    @Override
+                    public void dataLoadError() {
+                      errorIconImageView.setVisibility(View.VISIBLE);
+                      customersRecyclerView.setVisibility(View.GONE);
+                      swipeRefreshLayout.setRefreshing(false);
+                    }
+                  });
 
               selectedFilter = Filter.MOROCCO;
             } else if (mozambiqueCountryRadioButton.isChecked()) {
-              requestCustomersByCountry(Filter.MOZAMBIQUE);
+              requestMoreCustomers(
+                  1,
+                  Filter.MOZAMBIQUE,
+                  new DataRequestCallback() {
+                    @Override
+                    public void dataPreLoaded() {
+                      customerItemAdapter.clear();
+                      pageIndex = 1;
+                    }
+
+                    @Override
+                    public void dataLoaded() {
+                      customersRecyclerView.setVisibility(View.VISIBLE);
+                      errorIconImageView.setVisibility(View.GONE);
+                      customerItemAdapter.refreshAndAnimate();
+                      swipeRefreshLayout.setRefreshing(false);
+                      pageIndex++;
+                    }
+
+                    @Override
+                    public void dataLoadError() {
+                      errorIconImageView.setVisibility(View.VISIBLE);
+                      customersRecyclerView.setVisibility(View.GONE);
+                      swipeRefreshLayout.setRefreshing(false);
+                    }
+                  });
 
               selectedFilter = Filter.MOZAMBIQUE;
             } else if (ugandaCountryRadioButton.isChecked()) {
-              requestCustomersByCountry(Filter.UGANDA);
+              requestMoreCustomers(
+                  1,
+                  Filter.UGANDA,
+                  new DataRequestCallback() {
+                    @Override
+                    public void dataPreLoaded() {
+                      customerItemAdapter.clear();
+                      pageIndex = 1;
+                    }
+
+                    @Override
+                    public void dataLoaded() {
+                      customersRecyclerView.setVisibility(View.VISIBLE);
+                      errorIconImageView.setVisibility(View.GONE);
+                      customerItemAdapter.refreshAndAnimate();
+                      swipeRefreshLayout.setRefreshing(false);
+                      pageIndex++;
+                    }
+
+                    @Override
+                    public void dataLoadError() {
+                      errorIconImageView.setVisibility(View.VISIBLE);
+                      customersRecyclerView.setVisibility(View.GONE);
+                      swipeRefreshLayout.setRefreshing(false);
+                    }
+                  });
 
               selectedFilter = Filter.UGANDA;
             } else {
@@ -171,6 +508,120 @@ public class MainActivity extends AppCompatActivity {
     return true;
   }
 
+  private void requestMoreCustomers(int page, DataRequestCallback dataRequestCallback) {
+    // Request a string response from the provided URL.
+    StringRequest stringRequest =
+        new StringRequest(
+            Request.Method.GET,
+            String.format(
+                Locale.US,
+                "%s/%d",
+                baseURL + getResources().getString(R.string.allNumbersURL),
+                page),
+            response -> {
+              if (dataRequestCallback != null) {
+                dataRequestCallback.dataPreLoaded();
+              } else {
+                // do nothing
+              }
+
+              Response requestResponse = gson.fromJson(response, Response.class);
+
+              customerItemAdapter.addAll(requestResponse.getData());
+              if (dataRequestCallback != null) {
+                dataRequestCallback.dataLoaded();
+              } else {
+                // do nothing
+              }
+
+              pagesLeft = requestResponse.getPagesLeft();
+            },
+            error -> {
+              Log.e("REST_API", "Error: " + error.toString());
+              error.printStackTrace();
+
+              Toast.makeText(
+                      getApplicationContext(),
+                      "Could not connect with server, please try again later.",
+                      Toast.LENGTH_SHORT)
+                  .show();
+
+              if (dataRequestCallback != null) {
+                dataRequestCallback.dataLoadError();
+              } else {
+                // do nothing
+              }
+            });
+
+    // Add the request to the RequestQueue.
+    requestQueue.add(stringRequest);
+  }
+
+  private void requestMoreCustomers(
+      int page, Filter filter, DataRequestCallback dataRequestCallback) {
+    // Request a string response from the provided URL.
+    StringRequest stringRequest =
+        new StringRequest(
+            Request.Method.GET,
+            String.format(
+                Locale.US,
+                "%s/%d",
+                filter == Filter.VALID
+                    ? baseURL + getResources().getString(R.string.validURL)
+                    : filter == Filter.INVALID
+                        ? baseURL + getResources().getString(R.string.invalidURL)
+                        : filter == Filter.CAMEROON
+                            ? baseURL + getResources().getString(R.string.cameroonURL)
+                            : filter == Filter.ETHIOPIA
+                                ? baseURL + getResources().getString(R.string.ethiopiaURL)
+                                : filter == Filter.MOROCCO
+                                    ? baseURL + getResources().getString(R.string.moroccoURL)
+                                    : filter == Filter.MOZAMBIQUE
+                                        ? baseURL + getResources().getString(R.string.mozambiqueURL)
+                                        : filter == Filter.UGANDA
+                                            ? baseURL + getResources().getString(R.string.ugandaURL)
+                                            : baseURL
+                                                + getResources().getString(R.string.allNumbersURL),
+                page),
+            response -> {
+              if (dataRequestCallback != null) {
+                dataRequestCallback.dataPreLoaded();
+              } else {
+                // do nothing
+              }
+
+              Response requestResponse = gson.fromJson(response, Response.class);
+
+              customerItemAdapter.addAll(requestResponse.getData());
+              if (dataRequestCallback != null) {
+                dataRequestCallback.dataLoaded();
+              } else {
+                // do nothing
+              }
+
+              pagesLeft = requestResponse.getPagesLeft();
+            },
+            error -> {
+              Log.e("REST_API", "Error: " + error.toString());
+              error.printStackTrace();
+
+              Toast.makeText(
+                      getApplicationContext(),
+                      "Could not connect with server, please try again later.",
+                      Toast.LENGTH_SHORT)
+                  .show();
+
+              if (dataRequestCallback != null) {
+                dataRequestCallback.dataLoadError();
+              } else {
+                // do nothing
+              }
+            });
+
+    // Add the request to the RequestQueue.
+    requestQueue.add(stringRequest);
+  }
+
   private void requestAllCustomers() {
     customerItemAdapter.clear();
 
@@ -180,11 +631,9 @@ public class MainActivity extends AppCompatActivity {
             Request.Method.GET,
             baseURL + getResources().getString(R.string.allNumbersURL),
             response -> {
-              Gson gson = new Gson();
-
               Response requestResponse = gson.fromJson(response, Response.class);
 
-              customerItemAdapter.setDataSet(requestResponse.getCustomers());
+              customerItemAdapter.setDataSet(requestResponse.getData());
               customerItemAdapter.refreshAndAnimate();
               swipeRefreshLayout.setRefreshing(false);
             },
@@ -213,11 +662,9 @@ public class MainActivity extends AppCompatActivity {
                 ? baseURL + getResources().getString(R.string.validURL)
                 : baseURL + getResources().getString(R.string.invalidURL),
             response -> {
-              Gson gson = new Gson();
-
               Response requestResponse = gson.fromJson(response, Response.class);
 
-              customerItemAdapter.setDataSet(requestResponse.getCustomers());
+              customerItemAdapter.setDataSet(requestResponse.getData());
               customerItemAdapter.refreshAndAnimate();
               swipeRefreshLayout.setRefreshing(false);
             },
@@ -253,11 +700,9 @@ public class MainActivity extends AppCompatActivity {
                                 ? baseURL + getResources().getString(R.string.ugandaURL)
                                 : baseURL + getResources().getString(R.string.allNumbersURL),
             response -> {
-              Gson gson = new Gson();
-
               Response requestResponse = gson.fromJson(response, Response.class);
 
-              customerItemAdapter.setDataSet(requestResponse.getCustomers());
+              customerItemAdapter.setDataSet(requestResponse.getData());
               customerItemAdapter.refreshAndAnimate();
               swipeRefreshLayout.setRefreshing(false);
             },

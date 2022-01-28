@@ -9,7 +9,7 @@ import java.util.ArrayList;
  * <br>
  * {@link #message} - response message
  * <br>
- * {@link #customers} - response data
+ * {@link #data} - response data
  *
  * @author AbdAlMoniem AlHifnawy
  * @version 1.0
@@ -19,7 +19,7 @@ public class Response {
   /**
    * response data
    */
-  ArrayList<Customer> customers;
+  ArrayList<Customer> data;
 
   /**
    * response message
@@ -32,19 +32,24 @@ public class Response {
   int code;
 
   /**
+   * pages left
+   */
+  int pagesLeft;
+
+  /**
    *
    * @return ArrayList&lt;{@link Customer}&gt; - get response data
    */
-  public ArrayList<Customer> getCustomers() {
-    return customers;
+  public ArrayList<Customer> getData() {
+    return data;
   }
 
   /**
    *
-   * @param customers - set response data
+   * @param data - set response data
    */
-  public void setCustomers(ArrayList<Customer> customers) {
-    this.customers = customers;
+  public void setData(ArrayList<Customer> data) {
+    this.data = data;
   }
 
   /**
@@ -77,5 +82,21 @@ public class Response {
    */
   public void setCode(int code) {
     this.code = code;
+  }
+
+  /**
+   *
+   * @return int - get pages left
+   */
+  public int getPagesLeft() {
+    return pagesLeft;
+  }
+
+  /**
+   *
+   * @param pagesLeft - set pages left
+   */
+  public void setPagesLeft(int pagesLeft) {
+    this.pagesLeft = pagesLeft;
   }
 }

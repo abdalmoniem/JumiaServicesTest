@@ -1,6 +1,7 @@
 package com.jumiaservices.task.phone_numbers.Controller;
 
 import com.jumiaservices.task.phone_numbers.Model.Customer;
+import com.jumiaservices.task.phone_numbers.Model.Response;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -16,6 +17,8 @@ import java.util.regex.Pattern;
  * @since Jan 27th 2022
  */
 public class DBInterface {
+
+  private final int PAGE_ITEM_COUNT = 10;
 
   /** the {@link Connection} object used to connect to the database and execute queries on it */
   private Connection connection;
@@ -76,16 +79,23 @@ public class DBInterface {
    *     database
    * @see Customer
    */
-  public ArrayList<Customer> getCustomers() {
-    ArrayList<Customer> customers = null;
+  public Response getCustomers(Integer page) {
+    Response response = new Response();
 
     try {
       if (!dbOpenConnection()) {
         return null;
       } else {
-        customers = new ArrayList<>();
+        ArrayList<Customer> customers = new ArrayList<>();
 
-        String sqlQuery = String.format("SELECT * FROM customer");
+        String sqlQuery;
+
+        if (page == null) {
+          sqlQuery = "SELECT * FROM customer";
+        } else {
+          sqlQuery =
+              String.format("SELECT * FROM customer limit %d offset %d", PAGE_ITEM_COUNT, ((page - 1) * PAGE_ITEM_COUNT));
+        }
 
         sqlStatement = connection.prepareStatement(sqlQuery);
         ResultSet resultSet = sqlStatement.executeQuery();
@@ -104,6 +114,10 @@ public class DBInterface {
           customers.add(customer);
         }
 
+        executePageCountQuery(page, response);
+
+        response.setData(customers);
+
         dbCloseConnection();
       }
     } catch (SQLException e) {
@@ -113,109 +127,46 @@ public class DBInterface {
       dbCloseConnection();
     }
 
-    return customers;
+    return response;
   }
 
   /**
    * return all valid phone numbers
    *
-   * @param filter - filter value for countries, valid values are {@link Filter#CAMEROON},
-   * {@link Filter#ETHIOPIA}, {@link Filter#MOROCCO}, {@link Filter#MOZAMBIQUE}, {@link Filter#UGANDA}
+   * @param filter - filter value for valid/invalid numbers, valid values are {@link Filter#VALID},
+   *     {@link Filter#INVALID}, {@link Filter#CAMEROON}, {@link Filter#ETHIOPIA}, {@link
+   *     Filter#MOROCCO}, {@link Filter#MOZAMBIQUE}, {@link Filter#UGANDA}
    * @return ArrayList&lt;{@link Customer}&gt; - an ArrayList containing all valid phone numbers
    */
-  public ArrayList<Customer> getStateCustomers(Filter filter) {
-    ArrayList<Customer> customers = null;
+  public Response getCustomersByFilter(Integer page, Filter filter) {
+    Response response = new Response();
 
     try {
       if (!dbOpenConnection()) {
         return null;
       } else {
-        customers = new ArrayList<>();
-
-        String sqlQuery = "";
-
-        switch (filter) {
-          case VALID:
-            // use (like) in query to extract numbers that are valid based on country code, since sqlite does not support
-            // regex matching
-            sqlQuery =
-                    "select * from customer where phone like '(237)_%' or phone like '(251)_%' or phone like '(212)_%' or "
-                            + "phone like '(258)_%' or phone like '(256)_%'";
-            break;
-          case INVALID:
-            sqlQuery =
-                    "select * from customer";
-          default:
-            break;
-        }
+        ArrayList<Customer> customers = new ArrayList<>();
+        String sqlQuery;
+        // response = new Response();
 
         // compile a regex to test against for all valid phone numbers returned from the database
         Pattern pattern =
-                Pattern.compile(
-                        "\\((237\\)\\s?[2368]\\d{7,8}$)|(\\(251\\)\\s?[1-59]\\d{8}$)|(\\(212\\)\\s?[5-9]\\d{8}$)"
-                                + "|(\\(258\\)\\s?[28]\\d{7,8}$)|(\\(256\\)\\s?\\d{9}$)");
+            Pattern.compile(
+                "\\((237\\)\\s?[2368]\\d{7,8}$)|(\\(251\\)\\s?[1-59]\\d{8}$)|(\\(212\\)\\s?[5-9]\\d{8}$)"
+                    + "|(\\(258\\)\\s?[28]\\d{7,8}$)|(\\(256\\)\\s?\\d{9}$)");
 
-        sqlStatement = connection.prepareStatement(sqlQuery);
-        ResultSet resultSet = sqlStatement.executeQuery();
-
-        while (resultSet.next()) {
-          Customer customer = new Customer();
-
-          int id = resultSet.getInt("id");
-          String name = resultSet.getString("name");
-          String phone = resultSet.getString("phone");
-
-          Matcher matcher = pattern.matcher(phone);
-
-          if (matcher.matches() && (filter == Filter.VALID)) {
-            customer.setID(id);
-            customer.setName(name);
-            customer.setPhone(phone);
-
-            customers.add(customer);
-          } else if (!matcher.matches() && filter == Filter.INVALID) {
-            customer.setID(id);
-            customer.setName(name);
-            customer.setPhone(phone);
-
-            customers.add(customer);
-          }
-        }
-
-        dbCloseConnection();
-      }
-    } catch (SQLException e) {
-      System.err.println(e.getMessage());
-      e.printStackTrace();
-
-      dbCloseConnection();
-    }
-
-    return customers;
-  }
-
-  /**
-   * return all valid phone numbers for a given country
-   *
-   * @param filter - filter value for countries, valid values are {@link Filter#CAMEROON},
-   * {@link Filter#ETHIOPIA}, {@link Filter#MOROCCO}, {@link Filter#MOZAMBIQUE}, {@link Filter#UGANDA}
-   * @return ArrayList&lt;{@link Customer}&gt; - an ArrayList containing all valid phone numbers for a given country
-   */
-  public ArrayList<Customer> getCountryCustomers(Filter filter) {
-    ArrayList<Customer> customers = null;
-
-    try {
-      if (!dbOpenConnection()) {
-        return null;
-      } else {
-        customers = new ArrayList<>();
-
-        String sqlQuery = "";
-        Pattern pattern = null;
-
-        // use (like) in query to extract numbers that are valid based on country code, since sqlite does not support
-        // regex matching and compile a regex to test against for all valid phone numbers returned from the database
         switch (filter) {
+          case VALID:
+            // use (like) in query to extract numbers that are valid based on country code, since
+            // sqlite does not support
+            // regex matching
+            sqlQuery =
+                "select * from customer where phone like '(237)_%' or phone like '(251)_%' or phone like '(212)_%' or "
+                    + "phone like '(258)_%' or phone like '(256)_%'";
+            break;
+          case INVALID:
+            sqlQuery = "select * from customer";
+            break;
           case CAMEROON:
             sqlQuery = "select * from customer where phone like '(237)_%'";
             pattern = Pattern.compile("\\(237\\)\\s?[2368]\\d{7,8}$");
@@ -237,11 +188,14 @@ public class DBInterface {
             pattern = Pattern.compile("\\(256\\)\\s?\\d{9}$");
             break;
           default:
+            sqlQuery = "";
             break;
         }
 
         sqlStatement = connection.prepareStatement(sqlQuery);
         ResultSet resultSet = sqlStatement.executeQuery();
+
+        ArrayList<Customer> invalidCustomers = new ArrayList<>();
 
         while (resultSet.next()) {
           Customer customer = new Customer();
@@ -250,21 +204,48 @@ public class DBInterface {
           String name = resultSet.getString("name");
           String phone = resultSet.getString("phone");
 
-          if (pattern != null) {
-            Matcher matcher = pattern.matcher(phone);
+          Matcher matcher = pattern.matcher(phone);
 
-            if (matcher.matches()) {
-              customer.setID(id);
-              customer.setName(name);
-              customer.setPhone(phone);
+          if (!matcher.matches() && (filter == Filter.INVALID)) {
+            customer.setID(id);
+            customer.setName(name);
+            customer.setPhone(phone);
 
-              customers.add(customer);
-            } else {
-              // do nothing
-            }
-          } else {
-            // do nothing
+            invalidCustomers.add(customer);
+          } else if (matcher.matches()) {
+            customer.setID(id);
+            customer.setName(name);
+            customer.setPhone(phone);
+
+            customers.add(customer);
           }
+        }
+
+        if (invalidCustomers.size() > 0) {
+          customers.clear();
+          customers.addAll(invalidCustomers);
+        } else {
+          // do nothing
+        }
+
+        if (page != null) {
+          if (customers.size() <= PAGE_ITEM_COUNT) {
+            response.setData(customers);
+          } else {
+            int startOffset = (page - 1) * PAGE_ITEM_COUNT;
+            int endOffset = startOffset + PAGE_ITEM_COUNT;
+
+            if (endOffset > customers.size()) {
+              endOffset = customers.size();
+            }
+
+            int totalPages = (int) Math.ceil(customers.size() * 1.0f / PAGE_ITEM_COUNT);
+            response.setPagesLeft(totalPages - page);
+
+            response.setData(new ArrayList<>(customers.subList(startOffset, endOffset)));
+          }
+        } else {
+          response.setData(customers);
         }
 
         dbCloseConnection();
@@ -276,60 +257,61 @@ public class DBInterface {
       dbCloseConnection();
     }
 
-    return customers;
+    return response;
+  }
+
+  private void executePageCountQuery(Integer page, Response response) throws SQLException {
+    String sqlQuery;
+    ResultSet resultSet;
+    if (page == null) {
+      response.setPagesLeft(0);
+    } else {
+      int rowCount = 0;
+
+      sqlQuery = "SELECT COUNT(*) FROM customer";
+      sqlStatement = connection.prepareStatement(sqlQuery);
+      resultSet = sqlStatement.executeQuery();
+
+      while (resultSet.next()) {
+        rowCount = resultSet.getInt(1);
+      }
+
+      int totalPages = (int) Math.ceil(rowCount * 1.0f / PAGE_ITEM_COUNT);
+
+      response.setPagesLeft(totalPages - page);
+    }
   }
 
   /**
-   * Filter values
-   * <br>
-   * {@link #VALID} filter for all valid phone numbers from all countries
-   * <br>
-   * {@link #INVALID} filter for all invalid phone numbers from all countries
-   * <br>
-   * {@link #CAMEROON} filter for phone numbers from Cameroon
-   * <br>
-   * {@link #ETHIOPIA} filter for phone numbers from Ethiopia
-   * <br>
-   * {@link #MOROCCO} filter for phone numbers from Morocco
-   * <br>
-   * {@link #MOZAMBIQUE} filter for phone numbers from Mozambique
-   * <br>
+   * Filter values <br>
+   * {@link #VALID} filter for all valid phone numbers from all countries <br>
+   * {@link #INVALID} filter for all invalid phone numbers from all countries <br>
+   * {@link #CAMEROON} filter for phone numbers from Cameroon <br>
+   * {@link #ETHIOPIA} filter for phone numbers from Ethiopia <br>
+   * {@link #MOROCCO} filter for phone numbers from Morocco <br>
+   * {@link #MOZAMBIQUE} filter for phone numbers from Mozambique <br>
    * {@link #UGANDA} filter for phone numbers from Uganda
    */
   public enum Filter {
-    /**
-     * filter for all valid phone numbers from all countries
-     */
+    /** filter for all valid phone numbers from all countries */
     VALID,
 
-    /**
-     * filter for all invalid phone numbers from all countries
-     */
+    /** filter for all invalid phone numbers from all countries */
     INVALID,
 
-    /**
-     * filter for phone numbers from Cameroon
-     */
+    /** filter for phone numbers from Cameroon */
     CAMEROON,
 
-    /**
-     * filter for phone numbers from Ethiopia
-     */
+    /** filter for phone numbers from Ethiopia */
     ETHIOPIA,
 
-    /**
-     * filter for phone numbers from Morocco
-     */
+    /** filter for phone numbers from Morocco */
     MOROCCO,
 
-    /**
-     * filter for phone numbers from Mozambique
-     */
+    /** filter for phone numbers from Mozambique */
     MOZAMBIQUE,
 
-    /**
-     * filter for phone numbers from Uganda
-     */
+    /** filter for phone numbers from Uganda */
     UGANDA
   }
 }
