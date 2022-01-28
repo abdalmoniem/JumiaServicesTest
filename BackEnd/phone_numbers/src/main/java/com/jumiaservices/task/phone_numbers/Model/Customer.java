@@ -6,7 +6,7 @@ package com.jumiaservices.task.phone_numbers.Model;
  *
  * @author  AbdAlMoniem AlHifnawy
  * @version 1.0
- * @since   Jan 22nd 2022
+ * @since   Jan 27th 2022
  */
 public class Customer {
   /**
@@ -32,9 +32,9 @@ public class Customer {
   /**
    * Creates a new customer with the following data:
    *
-   * @param ID the customer's ID
-   * @param name the customer's name
-   * @param phone the customer's phone
+   * @param ID - the customer's ID
+   * @param name - the customer's name
+   * @param phone - the customer's phone
    */
   public Customer(int ID, String name, String phone) {
     this.ID = ID;
@@ -52,7 +52,7 @@ public class Customer {
 
   /**
    *
-   * @param ID the ID to set to this customer
+   * @param ID - the ID to set to this customer
    */
   public void setID(int ID) {
     this.ID = ID;
@@ -68,7 +68,7 @@ public class Customer {
 
   /**
    *
-   * @param name the name to set to this customer
+   * @param name - the name to set to this customer
    */
   public void setName(String name) {
     this.name = name;
@@ -84,7 +84,7 @@ public class Customer {
 
   /**
    *
-   * @param phone the phone number to set to this customer
+   * @param phone - the phone number to set to this customer
    */
   public void setPhone(String phone) {
     this.phone = phone;
