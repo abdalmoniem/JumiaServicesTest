@@ -1,15 +1,12 @@
 package com.jumiaservices.task.phone_numbers.Controller;
 
 import com.jumiaservices.task.phone_numbers.Controller.DBInterface.Filter;
-import com.jumiaservices.task.phone_numbers.Model.Customer;
 import com.jumiaservices.task.phone_numbers.Model.Response;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.ArrayList;
 
 /**
  * The PhoneNumberProcessorController class represents the main REST Controller of the business
@@ -26,8 +23,8 @@ public class PhoneNumberProcessorController {
   DBInterface dbi = new DBInterface();
 
   /**
-   * This method is used to return all customers stored in the database without filtering or
-   * pagination
+   * This method is used to return all customers stored in the database with pagination and
+   * filtering using path variables
    *
    * @return Response - a response object with the result of the query database
    * @see Response

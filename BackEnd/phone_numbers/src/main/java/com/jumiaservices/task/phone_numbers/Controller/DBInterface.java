@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
  */
 public class DBInterface {
 
+  /** the maximum number of item to fetch in one page */
   private final int PAGE_ITEM_COUNT = 10;
 
   /** the {@link Connection} object used to connect to the database and execute queries on it */
@@ -75,8 +76,9 @@ public class DBInterface {
   }
 
   /**
-   * @return ArrayList&lt;{@link Customer}&gt; - an ArrayList containing all customers in the
-   *     database
+   * @param page - the page number to fetch from the database, if null this method will return all
+   *     available entries in the database
+   * @return {@link Response} - a Response object containing all customers in the database
    * @see Customer
    */
   public Response getCustomers(Integer page) {
@@ -94,7 +96,9 @@ public class DBInterface {
           sqlQuery = "SELECT * FROM customer";
         } else {
           sqlQuery =
-              String.format("SELECT * FROM customer limit %d offset %d", PAGE_ITEM_COUNT, ((page - 1) * PAGE_ITEM_COUNT));
+              String.format(
+                  "SELECT * FROM customer limit %d offset %d",
+                  PAGE_ITEM_COUNT, ((page - 1) * PAGE_ITEM_COUNT));
         }
 
         sqlStatement = connection.prepareStatement(sqlQuery);
@@ -133,6 +137,8 @@ public class DBInterface {
   /**
    * return all valid phone numbers
    *
+   * @param page - the page number to fetch from the database, if null this method will return all
+   *             available entries in the database or all filtered entries if a filter is specified
    * @param filter - filter value for valid/invalid numbers, valid values are {@link Filter#VALID},
    *     {@link Filter#INVALID}, {@link Filter#CAMEROON}, {@link Filter#ETHIOPIA}, {@link
    *     Filter#MOROCCO}, {@link Filter#MOZAMBIQUE}, {@link Filter#UGANDA}
@@ -158,8 +164,7 @@ public class DBInterface {
         switch (filter) {
           case VALID:
             // use (like) in query to extract numbers that are valid based on country code, since
-            // sqlite does not support
-            // regex matching
+            // sqlite does not support regex matching
             sqlQuery =
                 "select * from customer where phone like '(237)_%' or phone like '(251)_%' or phone like '(212)_%' or "
                     + "phone like '(258)_%' or phone like '(256)_%'";
@@ -232,13 +237,20 @@ public class DBInterface {
           if (customers.size() <= PAGE_ITEM_COUNT) {
             response.setData(customers);
           } else {
+            // the start offset is the page index X item count per page, page index is zero index and the service uses
+            // a non-zero index so we subtract 1 from the page index to map to a valid index in the array list
             int startOffset = (page - 1) * PAGE_ITEM_COUNT;
+
+            // the end offset is the start offset + item count per page
             int endOffset = startOffset + PAGE_ITEM_COUNT;
 
             if (endOffset > customers.size()) {
               endOffset = customers.size();
             }
 
+            // total pages is the total size of entries in the database ÷ item count per page, and we ceil the value to
+            // account for floating points, so for example if total pages is calculated to be 4.1 or 4.7 it would be
+            // raised to 5 in either case
             int totalPages = (int) Math.ceil(customers.size() * 1.0f / PAGE_ITEM_COUNT);
             response.setPagesLeft(totalPages - page);
 
@@ -260,6 +272,12 @@ public class DBInterface {
     return response;
   }
 
+  /**
+   * @param page - the page number to fetch from the database, if null this method will set response.setPagesLeft
+   *             with 0, otherwise it will calculate how many pages are left and store it in the response object
+   * @param response - the response object to hold the pages left
+   * @throws SQLException
+   */
   private void executePageCountQuery(Integer page, Response response) throws SQLException {
     String sqlQuery;
     ResultSet resultSet;
