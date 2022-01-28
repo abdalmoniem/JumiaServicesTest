@@ -5,15 +5,16 @@ This is the solution to Jumia's Recruitment Process Exercise
 
 ## Project Structure:
 the project is split into three directories:
-1. Backend
+
+1. `Backend`
 
 which contains the source code for the `Spring Boot` based REST Web Service backend, this also contains the `customers.db` SQLite Database
 
-2. Frontend
+2. `Frontend`
 
 which contains the source code for the frontend, which I opted to use Android for it, as well as the release APK
 
-3. Requirements
+3. `Requirements`
 
 which contains the requested requirements from Jumia
 
