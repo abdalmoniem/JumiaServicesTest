@@ -10,6 +10,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
@@ -36,10 +37,10 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 public class MainActivity extends AppCompatActivity {
 
-  private final String serverIP = "192.168.1.120";
-  private final String serverPort = "8080";
-  private final String baseURL = String.format("http://%s:%s", serverIP, serverPort);
   private final Gson gson = new Gson();
+  private final String serverPort = "8080";
+  private String serverIP = "";
+  private String baseURL;
 
   private SwipeRefreshLayout swipeRefreshLayout;
   private RecyclerView customersRecyclerView;
@@ -65,38 +66,12 @@ public class MainActivity extends AppCompatActivity {
     requestQueue = Volley.newRequestQueue(getApplicationContext());
 
     initializeLayout();
-
-    // requestAllCustomers();
-
-    requestMoreCustomers(
-        pageIndex,
-        new DataRequestCallback() {
-          @Override
-          public void dataPreLoaded() {}
-
-          @Override
-          public void dataLoaded() {
-            customersRecyclerView.setVisibility(View.VISIBLE);
-            errorIconImageView.setVisibility(View.GONE);
-
-            customerItemAdapter.refreshAndAnimate();
-            swipeRefreshLayout.setRefreshing(false);
-            progressBar.setVisibility(View.GONE);
-            pageIndex++;
-          }
-
-          @Override
-          public void dataLoadError() {
-            errorIconImageView.setVisibility(View.VISIBLE);
-            customersRecyclerView.setVisibility(View.GONE);
-            swipeRefreshLayout.setRefreshing(false);
-            progressBar.setVisibility(View.GONE);
-          }
-        });
   }
 
   private void initializeLayout() {
-    customersRecyclerView = findViewById(R.id.customersRecyclerView);
+      showIPInputDialog();
+
+      customersRecyclerView = findViewById(R.id.customersRecyclerView);
 
     errorIconImageView = findViewById(R.id.errorIconImageView);
 
@@ -200,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
         });
   }
 
-  @Override
+    @Override
   public boolean onCreateOptionsMenu(Menu menu) {
     getMenuInflater().inflate(R.menu.main_options, menu);
     return true;
@@ -502,8 +477,10 @@ public class MainActivity extends AppCompatActivity {
           });
 
       dialog.show();
+    } else if (item.getItemId() == R.id.ipAddress){
+      showIPInputDialog();
     } else {
-      //  do nothing
+        // do nothing
     }
     return true;
   }
@@ -720,6 +697,64 @@ public class MainActivity extends AppCompatActivity {
     // Add the request to the RequestQueue.
     requestQueue.add(stringRequest);
   }
+
+    private void showIPInputDialog() {
+        final Dialog dialog = new Dialog(this);
+        Objects.requireNonNull(dialog.getWindow()).getAttributes().windowAnimations =
+                R.style.Animation_Design_BottomSheetDialog;
+
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setCancelable(true);
+        dialog.setCanceledOnTouchOutside(true);
+        dialog.setContentView(R.layout.ip_address_dialog);
+
+        EditText ipAddressEditText = dialog.findViewById(R.id.ipAddressEditText);
+        Button connectButton = dialog.findViewById(R.id.connectButton);
+
+        connectButton.setOnClickListener(
+                v -> {
+                    serverIP = ipAddressEditText.getText().toString();
+
+                    baseURL = String.format("http://%s:%s", serverIP, serverPort);
+
+                    Log.d("REST", ipAddressEditText.getText().toString());
+
+                    // requestAllCustomers();
+
+                    requestMoreCustomers(
+                            pageIndex,
+                            selectedFilter,
+                            new DataRequestCallback() {
+                                @Override
+                                public void dataPreLoaded() {}
+
+                                @Override
+                                public void dataLoaded() {
+                                    customersRecyclerView.setVisibility(View.VISIBLE);
+                                    errorIconImageView.setVisibility(View.GONE);
+
+                                    customerItemAdapter.refreshAndAnimate();
+                                    swipeRefreshLayout.setRefreshing(false);
+                                    progressBar.setVisibility(View.GONE);
+                                    pageIndex++;
+                                }
+
+                                @Override
+                                public void dataLoadError() {
+                                    errorIconImageView.setVisibility(View.VISIBLE);
+                                    customersRecyclerView.setVisibility(View.GONE);
+                                    swipeRefreshLayout.setRefreshing(false);
+                                    progressBar.setVisibility(View.GONE);
+                                }
+                            });
+                    dialog.dismiss();
+                });
+
+        dialog.setCancelable(false);
+        dialog.show();
+    }
 
   /**
    * Filter values <br>
