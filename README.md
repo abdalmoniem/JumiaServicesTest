@@ -38,3 +38,26 @@ b. on windows systems:
 ```shell
 ipconfig
 ```
+![IP Address Pop Up Dialog](https://raw.githubusercontent.com/abdalmoniem/JumiaServicesTest/master/Screenshots/ipAddressPopUpDialog.png)
+
+### Usage:
+* the application can show all phone numbers stored in the database with pagination. the page item count is 10, but whenever you scroll through the list of numbers, the software will load more numbers from the backend until there are no more numbers
+
+* you can find the filter icon on the top right corner:
+![Filter Icon](https://raw.githubusercontent.com/abdalmoniem/JumiaServicesTest/master/Screenshots/filtersIcon.png)
+
+* when you tap on the `filters icon` a pop=up window will appear with the filter choices available, which are:
+1. `All`, which fetchs `all` the numbers from the database, the `valid` ones as well as the invalid ones, no filter is applied here.
+2. `State: Valid`, which filters for all `valid` phone numbers from all countries
+3. `State: Invalid`, which filters for all `invalid` phone numbers from all countries
+4. `Country: Cameroon`, which filters for all valid phone numbers from `Cameroon`
+5. `Country: Ethiopia`, which filters for all valid phone numbers from `Ethiopia`
+6. `Country: Morocco`, which filters for all valid phone numbers from `Morocco`
+7. `Country: Mozambique`, which filters for all valid phone numbers from `Mozambique`
+8. `Country: Uganda`, which filters for all valid phone numbers from `Uganda`
+
+![Filter Pop Up Dialog](https://raw.githubusercontent.com/abdalmoniem/JumiaServicesTest/master/Screenshots/filtersPopUpDialog.png)
+
+* at anytime you can tap the server icon on the top right to change the ip address of the server if it changes for any reason
+
+![IP Address Icon](https://raw.githubusercontent.com/abdalmoniem/JumiaServicesTest/master/Screenshots/ipAddressIcon.png)
