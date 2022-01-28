@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   /** initialize the main UI of this activity */
-  private void initializeLayout() {
+  public void initializeLayout() {
     // initialize server ip and send initial REST request
     showIPInputDialog();
 
@@ -358,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
    * @param dataRequestCallback - callback interface implementation used to handle UI/UX before,
    *     after and if an error occurs in the REST API request
    */
-  private void requestMoreCustomers(
+  public void requestMoreCustomers(
       int page, Filter filter, DataRequestCallback dataRequestCallback) {
     // Request a string response from the provided URL.
     StringRequest stringRequest =
@@ -424,7 +424,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   /** show a non-dismissible pop-up dialog for the user to input in the server's IP address */
-  private void showIPInputDialog() {
+  public void showIPInputDialog() {
     final Dialog dialog = new Dialog(this);
     Objects.requireNonNull(dialog.getWindow()).getAttributes().windowAnimations =
         R.style.Animation_Design_BottomSheetDialog;
@@ -442,6 +442,8 @@ public class MainActivity extends AppCompatActivity {
     connectButton.setOnClickListener(
         v -> {
           serverIP = ipAddressEditText.getText().toString();
+
+          Toast.makeText(getApplicationContext(), serverIP, Toast.LENGTH_SHORT).show();
 
           baseURL = String.format("http://%s:%s", serverIP, serverPort);
 
@@ -493,7 +495,7 @@ public class MainActivity extends AppCompatActivity {
    * {@link #MOZAMBIQUE} filter for phone numbers from Mozambique <br>
    * {@link #UGANDA} filter for phone numbers from Uganda
    */
-  private enum Filter {
+  public enum Filter {
     /** filter for all valid and invalid phone numbers from all countries */
     ALL,
 
