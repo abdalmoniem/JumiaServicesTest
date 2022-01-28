@@ -5,7 +5,7 @@ package com.hifnawy.subtitle.jumiastaskphonenumberviewer.model;
  *
  * @author AbdAlMoniem AlHifnawy
  * @version 1.0
- * @since Jan 22nd 2022
+ * @since Jan 27th 2022
  */
 public class Customer {
   /** the ID of a customer */
