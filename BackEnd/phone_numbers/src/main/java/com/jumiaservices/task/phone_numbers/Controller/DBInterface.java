@@ -246,6 +246,8 @@ public class DBInterface {
 
             if (endOffset > customers.size()) {
               endOffset = customers.size();
+            } else {
+              // do nothing
             }
 
             // total pages is the total size of entries in the database ÷ item count per page, and we ceil the value to
@@ -254,7 +256,11 @@ public class DBInterface {
             int totalPages = (int) Math.ceil(customers.size() * 1.0f / PAGE_ITEM_COUNT);
             response.setPagesLeft(totalPages - page);
 
-            response.setData(new ArrayList<>(customers.subList(startOffset, endOffset)));
+            if ((startOffset > endOffset) || (startOffset > customers.size()) || (startOffset < 0)) {
+              response.setData(null);
+            } else {
+              response.setData(new ArrayList<>(customers.subList(startOffset, endOffset)));
+            }
           }
         } else {
           response.setData(customers);
